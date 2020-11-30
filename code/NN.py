@@ -81,7 +81,8 @@ class neuralNetwork:
 
     def setlearnning(self, lr):
         self.lr = lr
-
+    def get_wh(self):
+        return (self.wih,self.who)
 
 def demo1():
     # 构造神经网络
@@ -350,8 +351,8 @@ def epochsplot(epochslist, performance, lr):
 def demo_linearfit(lr=None, epochs=1):
     # 构造神经网络
     inputnodes = 100
-    hidennodes = 2000
-    outputnodes = 3
+    hidennodes = 100
+    outputnodes = 100
     learningeate = 0.001
     n = neuralNetwork(inputnodes, hidennodes, outputnodes, learningeate)
 
@@ -362,9 +363,10 @@ def demo_linearfit(lr=None, epochs=1):
     inputs = (X / (max(X) - min(X)) * 0.99) + .01
 
     # 归一化标签
-    targets = np.array([4, -1, 2])
-    targets = (targets / (max(targets) - min(targets)) * 0.99) + .01
-    y = targets[0] * X * X + targets[1] * np.random.rand(X.size) * X + targets[2]
+    beta = [3,2,1]
+    y = beta[0] * X * X + beta[1] * np.random.rand(X.size) * X + beta[2]
+    targets = (y / (max(y) - min(y)) * 0.99) + .01
+
     # targets = (y / (max(y) - min(y)) * 0.99) + .01
     #targets = np.array([0.4, 0.5, 0.9])
 
@@ -385,13 +387,50 @@ def demo_linearfit(lr=None, epochs=1):
     plt.show()
     # 画预测图
     res = n.query(inputs)
-    X = np.linspace(-1, 1, 1000)
-    plt.plot(X, res[0] * X * X + res[1] * X + res[2], color='r')
+    X = np.linspace(-1, 1, 100)
+    plt.plot(X, res, color='r')
+    plt.show()
+def demo_linearfit2(lr,epoch=100):
+    # 构造神经网络
+    inputnodes = 1
+    hidennodes = 5
+    outputnodes = 1
+
+    n = neuralNetwork(inputnodes, hidennodes, outputnodes, lr)
+    #输出此时的神经网络权重
+    print("训练前：\nwih层的权重为{},\nwho的权重矩阵为{}".format(n.get_wh()[0],n.get_wh()[1]))
+    # 训练神经网络
+    # 归一化输入输出
+    x = np.linspace(-1, 1, epoch)
+    X = np.asfarray(x)
+    inputs = (X / (max(X) - min(X)) * 0.99) + .01
+
+    # 归一化标签
+    beta = [3,2,1]
+    y = beta[0] * X * X + beta[1] * np.random.rand(X.size) * X + beta[2]
+    targets = (y / (max(y) - min(y)) * 0.99) + .01
+    #用10个数据进行训练
+    n.setlearnning(lr)
+    for i in range(epoch):
+        n.train(inputs[i],targets[i])
+    print("训练后：\nwih层的权重为{},\nwho的权重矩阵为{}".format(n.get_wh()[0], n.get_wh()[1]))
+    #用1000个数据进行拟合
+    x_query = np.linspace(-1,1,1000)
+    x_query = np.asfarray(x_query)
+    query_inputs = (x_query / (max(x_query) - min(x_query)) * 0.99) + .01
+    res = [float(n.query(j)) for j in query_inputs]
+    # 画出原始图像
+    plt.scatter(inputs, targets)
+    #画出预测曲线
+    plt.plot(x_query,res,color='r')
     plt.show()
 
-
 if __name__ == '__main__':
-    demo_linearfit(0.01, 2000)
+    # demo_linearfit(0.01, 20)
+    demo_linearfit2(0.9,2)
+
+
+
 
 # if __name__ == '__main__':
 #     lr=0.4
