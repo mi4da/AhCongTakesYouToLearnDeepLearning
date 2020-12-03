@@ -32,7 +32,6 @@ class ANN(neuralNetwork):
         # 计算隐藏层误差
         hidden_errors = self.who.T @ output_error
         # 更新隐藏层与输入层的权重
-        self.update_who(output_error, final_outputs, hidden_outputs)
         """
         这里的梯度下降法所使用的不是”梯度向量“而是”雅克比矩阵“，
         参考：https://blog.csdn.net/liuliqun520/article/details/80019507
@@ -41,7 +40,7 @@ class ANN(neuralNetwork):
         或者我们就用最原始lossfuction来规范，画出图像来那样子。
         
         """
-        self.update_who(output_error,final_outputs,final_inputs,hidden_outputs)
+        self.update_who(output_error,final_outputs,hidden_outputs)
         # 更新输入层与隐藏层的权重
         self.update_wih(hidden_errors, hidden_outputs, inputs)
         # 更新隐藏层的偏置
@@ -85,7 +84,7 @@ class ANN(neuralNetwork):
         count = 0
         while np.linalg.norm(grid, 2) >= 10 ** (-5) and count <= 100:
             grid = hidden_errors * hidden_outputs * (1 - hidden_outputs)
-            self.hidden_bias += self.lr * grid
+            self.hidden_bias += -self.lr * grid
             count += 1
             print("bho 范数：{}".format(np.linalg.norm(grid, 2)))
 

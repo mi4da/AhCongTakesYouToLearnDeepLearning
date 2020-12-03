@@ -136,140 +136,7 @@ def demo1():
     plt.imshow(image_array_test, cmap='Greys', interpolation='None')
 
 
-class neuralNetwork_newton(neuralNetwork):
-    def __init__(self, inputnodes, hiddennodes, outputnodes, maxm, epsilon):
-        super(neuralNetwork_newton, self).__init__(inputnodes, hiddennodes, outputnodes, learningrate=None)
-        self.maxm = maxm
-        self.epsilon = epsilon
 
-    def train(self, input_list, target_list):
-        # 构造目标矩阵
-        self.targets = np.array(target_list, ndmin=2).T
-        # 构建输入矩阵
-        self.inputs = np.array(input_list, ndmin=2).T
-        """# 计算隐藏层输入
-        self.hidden_inputs = self.wih @ self.inputs
-        # 计算隐藏层输出
-        self.hidden_outputs = self.activation_function(self.hidden_inputs)
-        # 计算输出层输入
-        self.final_inputs = self.who @ self.hidden_outputs
-        # 计算输出层输出
-        self.final_outputs = self.activation_function(self.final_inputs)
-        # 计算输出层误差
-        self.output_error = self.targets - self.final_outputs
-        # 计算隐含层误差
-        self.hidden_errors = self.who.T @ self.output_error"""
-        # 更新隐藏层与输出层的权重
-        m = 0
-        while np.linalg.norm(self.gfun_who(self.who)) > self.epsilon and m < self.maxm:
-            dk = -np.linalg.inv(self.G_who(self.who)) @ self.gfun_who(self.who)
-            Armoji = ClassLineSreach(.2, .5, 100, self.gfun_who, self.fun_who)
-            self.who = Armoji.armijo(self.who, dk)
-            self.mk = Armoji.getmk()
-            print("梯度范数为 %s,函数最小值为 %s" % (np.linalg.norm(self.gfun_who(self.who)), self.fun_who(self.who)))
-            m += 1
-        # 更新输入层与隐藏层的权重
-        m = 0
-        while np.linalg.norm(self.gfun_wih(self.wih)) > self.epsilon and m < self.maxm:
-            dk = -np.linalg.inv(self.G_wih(self.wih)) @ self.gfun_wih(self.wih)
-            Armoji = ClassLineSreach(.2, .5, 100, self.gfun_wih, self.fun_wih)
-            self.wih = Armoji.armijo(self.wih, dk)
-            self.mk = Armoji.getmk()
-            print("梯度范数为 %s,函数最小值为 %s" % (np.linalg.norm(self.gfun_wih(self.wih)), self.fun_wih(self.wih)))
-            m += 1
-
-    def gfun_who(self, who):
-        # 计算隐藏层输入
-        hidden_inputs = self.wih @ self.inputs
-        # 计算隐藏层输出
-        hidden_outputs = self.activation_function(hidden_inputs)
-        # 计算输出层输入
-        final_inputs = who @ hidden_outputs
-        # 计算输出层输出
-        final_outputs = self.activation_function(final_inputs)
-        # 计算输出层误差
-        output_error = self.targets - final_outputs
-        return -output_error * final_outputs * (1 - final_outputs) @ np.transpose(hidden_outputs)
-        pass
-
-    def gfun_wih(self, wih):
-        # 计算隐藏层输入
-        hidden_inputs = wih @ self.inputs
-        # 计算隐藏层输出
-        hidden_outputs = self.activation_function(hidden_inputs)
-        # 计算输出层输入
-        final_inputs = self.who @ hidden_outputs
-        # 计算输出层输出
-        final_outputs = self.activation_function(final_inputs)
-        # 计算输出层误差
-        output_error = self.targets - final_outputs
-        # 计算隐藏层误差
-        hidden_errors = self.who.T @ output_error
-
-        return -hidden_errors * hidden_outputs * (1 - hidden_outputs) @ np.transpose(self.inputs)
-
-    def fun_who(self, who):
-        # 计算隐藏层输入
-        hidden_inputs = self.wih @ self.inputs
-        # 计算隐藏层输出
-        hidden_outputs = self.activation_function(hidden_inputs)
-        # 计算输出层输入
-        final_inputs = who @ hidden_outputs
-        # 计算输出层输出
-        final_outputs = self.activation_function(final_inputs)
-        # 计算输出层误差
-        output_error = self.targets - final_outputs
-        return -1 / 2 * len(output_error) * np.sum([output_error[i] ** 2 for i in range(len(output_error))])
-
-    def fun_wih(self, wih):
-        # 计算隐藏层输入
-        hidden_inputs = wih @ self.inputs
-        # 计算隐藏层输出
-        hidden_outputs = self.activation_function(hidden_inputs)
-        # 计算输出层输入
-        final_inputs = self.who @ hidden_outputs
-        # 计算输出层输出
-        final_outputs = self.activation_function(final_inputs)
-        # 计算输出层误差
-        output_error = self.targets - final_outputs
-        # 计算隐藏层误差
-        hidden_errors = self.who.T @ output_error
-        return -1 / 2 * len(hidden_errors) * np.sum([hidden_errors[i] ** 2 for i in range(len(hidden_errors))])
-
-    def G_who(self, who):
-        # 计算隐藏层输入
-        hidden_inputs = self.wih @ self.inputs
-        # 计算隐藏层输出
-        hidden_outputs = self.activation_function(hidden_inputs)
-        # 计算输出层输入
-        final_inputs = who @ hidden_outputs
-        # 计算输出层输出
-        final_outputs = self.activation_function(final_inputs)
-        # 计算输出层误差
-        output_error = self.targets - final_outputs
-        # 计算输出层误差平方之和
-        Sum_outputerror = -1 / 2 * len(output_error) * np.sum([output_error[i] ** 2 for i in range(len(output_error))])
-        return final_outputs @ final_outputs.T * (1 - final_outputs) * np.dot(hidden_outputs.T, hidden_outputs) * (
-                final_outputs * (Sum_outputerror - 1) + 1).T
-
-    def G_wih(self, wih):
-        # 计算隐藏层输入
-        hidden_inputs = wih @ self.inputs
-        # 计算隐藏层输出
-        hidden_outputs = self.activation_function(hidden_inputs)
-        # 计算输出层输入
-        final_inputs = self.who @ hidden_outputs
-        # 计算输出层输出
-        final_outputs = self.activation_function(final_inputs)
-        # 计算输出层误差
-        output_error = self.targets - final_outputs
-        # 计算隐藏层误差
-        hidden_errors = self.who.T @ output_error
-        # 计算隐藏层误差平方之和
-        Sum_hiddenerror = -1 / 2 * len(hidden_errors) * np.sum(
-            [hidden_errors[i] ** 2 for i in range(len(hidden_errors))])
-        return hidden_outputs @ hidden_outputs.T * (1 - hidden_outputs) * self.inputs @ self.inputs.T * (
-                hidden_outputs * (Sum_hiddenerror - 1) + 1)
 
 
 def learnningplot(learnninglist, performance, epochs=1):
@@ -445,7 +312,7 @@ def demo_linearfit2(lr, frequ=100):
         print("训练第{}次：\nwih层的权重为{},\nwho的权重矩阵为{}".format(i, n.get_wh()[0], n.get_wh()[1]))
     # 用1000个数据进行拟合
     x_query = np.linspace(-2, 2, 1000)
-    x_query = np.asfarray(x_query
+    x_query = np.asfarray(x_query)
     # query_inputs = (x_query / (max(x_query) - min(x_query)) * 0.99) + .01
     res = [float(n.query(j)) for j in x_query]
     res = np.array(res)
