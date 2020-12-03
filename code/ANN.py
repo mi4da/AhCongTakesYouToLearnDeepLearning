@@ -8,10 +8,10 @@ from NN import neuralNetwork
 class ANN(neuralNetwork):
     def __init__(self, inputnodes, hiddennodes, outputnodes, learningrate):
         super().__init__(inputnodes, hiddennodes, outputnodes, learningrate)
-        # 初始化输入层-隐藏层偏置
-        self.input_hidden_bias = (np.random.normal(0.0, 1.0, (self.hnodes, 1)))
-        # 初始化隐藏层-输出层偏置
-        self.hidden_output_bias = (np.random.normal(0.0, 1.0, (self.onodes, 1)))
+        # 初始化隐藏层偏置
+        self.hidden_bias = (np.random.normal(0.0, 1.0, (self.hnodes, 1)))
+        # 初始化输出层偏置
+        self.output_bias = (np.random.normal(0.0, 1.0, (self.onodes, 1)))
 
     def train(self, input_list, target_list):
         # 构造目标矩阵
@@ -19,12 +19,12 @@ class ANN(neuralNetwork):
         # 构建输入矩阵
         inputs = np.array(input_list, ndmin=2).T
         # 计算隐藏层的输入
-        hidden_inputs = self.wih @ inputs + self.input_hidden_bias
+        hidden_inputs = self.wih @ inputs + self.hidden_bias
         # print(hidden_inputs)
         # 计算隐藏层输出
         hidden_outputs = self.activation_function(hidden_inputs)
         # 计算输出层输入
-        final_inputs = self.who @ hidden_outputs + self.hidden_output_bias
+        final_inputs = self.who @ hidden_outputs + self.output_bias
         # 计算输出层输出
         final_outputs = self.activation_function(final_inputs)
         # 计算输出层误差
@@ -35,10 +35,10 @@ class ANN(neuralNetwork):
         self.update_who(output_error, final_outputs, hidden_outputs)
         # 更新输入层与隐藏层的权重
         self.update_wih(hidden_errors, hidden_outputs, inputs)
-        # 更新隐藏层与输入层的偏置
-        self.update_bih(output_error, final_outputs)
-        # 更新输入层与隐藏层的偏置
-        self.update_bho(hidden_errors, hidden_outputs)
+        # 更新隐藏层的偏置
+        self.update_bh(hidden_errors, hidden_outputs)
+        # 更新输出层的偏置
+        self.update_bo(output_error, final_outputs)
 
     def update_who(self, output_error, final_outputs, hidden_outputs):
         # self.who += self.lr * np.dot((output_error * final_inputs * (1-final_outputs)),np.transpose(hidden_outputs))
@@ -46,7 +46,7 @@ class ANN(neuralNetwork):
         jacobin = np.dot((output_error * final_outputs * (1 - final_outputs)),
                          np.transpose(hidden_outputs))
         count = 0
-        while np.linalg.norm(jacobin, 2) <= 10 ** (-5) and count <= 1000:
+        while np.linalg.norm(jacobin, 2) >= 10 ** (-5) and count <= 100:
             jacobin = np.dot((output_error * final_outputs * (1 - final_outputs)), np.transpose(hidden_outputs))
             self.who += self.lr * jacobin
             count += 1
@@ -56,27 +56,27 @@ class ANN(neuralNetwork):
         jacobin = np.dot((hidden_errors * hidden_outputs * (1 - hidden_outputs)),
                          np.transpose(inputs))
         count = 0
-        while np.linalg.norm(jacobin, 2) <= 10 ** (-5) and count <= 1000:
+        while np.linalg.norm(jacobin, 2) >= 10 ** (-5) and count <= 100:
             jacobin = np.dot((hidden_errors * hidden_outputs * (1 - hidden_outputs)), np.transpose(inputs))
             self.wih += self.lr * jacobin
             count += 1
             print("wih 谱范数：{}".format(np.linalg.norm(jacobin, 2)))
 
-    def update_bih(self, output_error, final_outputs):
+    def update_bo(self, output_error, final_outputs):
         grid = output_error * final_outputs * (1 - final_outputs)
         count = 0
-        while np.linalg.norm(grid, 2) <= 10 ** (-5) and count <= 1000:
+        while np.linalg.norm(grid, 2) >= 10 ** (-5) and count <= 100:
             grid = output_error * final_outputs * (1 - final_outputs)
-            self.input_hidden_bias += self.lr * grid
+            self.output_bias += self.lr * grid
             count += 1
             print("bih 范数：{}".format(np.linalg.norm(grid, 2)))
 
-    def update_bho(self, hidden_errors, hidden_outputs):
+    def update_bh(self, hidden_errors, hidden_outputs):
         grid = hidden_errors * hidden_outputs * (1 - hidden_outputs)
         count = 0
-        while np.linalg.norm(grid, 2) <= 10 ** (-5) and count <= 1000:
+        while np.linalg.norm(grid, 2) >= 10 ** (-5) and count <= 100:
             grid = hidden_errors * hidden_outputs * (1 - hidden_outputs)
-            self.hidden_output_bias += self.lr * grid
+            self.hidden_bias += self.lr * grid
             count += 1
             print("bho 范数：{}".format(np.linalg.norm(grid, 2)))
 
@@ -85,11 +85,11 @@ class ANN(neuralNetwork):
         # 构建输入矩阵
         inputs = np.array(input_list, ndmin=2).T
         # 计算掩藏层输入
-        hidden_inputs = self.wih @ inputs + self.input_hidden_bias
+        hidden_inputs = self.wih @ inputs + self.hidden_bias
         # 计算隐藏层输出
         hidden_outputs = self.activation_function(hidden_inputs)
         # 计算输出层输入
-        final_inputs = self.who @ hidden_outputs + self.hidden_output_bias
+        final_inputs = self.who @ hidden_outputs + self.output_bias
         # 计算输出层输出
         final_outputs = self.activation_function(final_inputs)
         # 返回最终的输出
@@ -97,7 +97,7 @@ class ANN(neuralNetwork):
 
     # 添加一个输出偏置的函数
     def get_bias(self):
-        return (self.input_hidden_bias, self.hidden_output_bias)
+        return (self.hidden_bias, self.output_bias)
 
 
 """# 大坑！默认参数必须指向不可变对象！！！！"""
@@ -136,20 +136,43 @@ def linearfit(lr, epoch):
     # 获取训练前的偏置向量
     print("训练前：\nih层的偏置为{},\nho层的偏置为{}".format(n.get_bias()[0], n.get_bias()[1]))
     """# 训练神经网络"""
-    # 获得10个采样数据
-    y_sampledata = get_sample(10)
+    # 获得epoch个采样数据
+    y_sampledata = get_sample(epoch)
     # 获得采样数据的反函数值
     x_sapmpledata = inverse_function(y_sampledata)
     # 归一化输入？
-    # 归一化标签
+    x = (x_sapmpledata / (max(x_sapmpledata) - min(x_sapmpledata)) * 0.99) + .01
+    # 不归一化
+    # x = x_sapmpledata
+    # 归一化标签\
+    target = (y_sampledata / (max(y_sampledata) - min(y_sampledata)) * 0.99) + .01
     # 训练神经网络
+    for i in range(epoch):
+        n.train(x[i], target[i])
+        # 训练第i次的权重矩阵
+        print("训练第{}次：\nih层的权重为{},\nho的权重矩阵为{}".format(i + 1, n.get_wh()[0], n.get_wh()[1]))
+        # 获取训练第i次的偏置向量
+        print("训练第{}次：\nih层的偏置为{},\nho层的偏置为{}".format(i + 1, n.get_bias()[0], n.get_bias()[1]))
+
     # 构造查询输入数据
+    x = np.linspace(-1, 1, 1000)
+    x_query = np.asfarray(x)
     # 查询输出
-    # 反归一化输出
+    y_query = np.array([float(n.query(j)) for j in x_query])
+    # 答应输出
+    print("查询输出",y_query)  # 反归一化输出
+    y_query = (y_query - .01) * (max(y_query) - min(y_query)) / 0.99
+    # 打印反归一化输出
+    print("反归一化输出为：",y_query)
     # 画出原函数图像
-    # 画出采样数据点
+    # plt.plot(x, sampling_function(x), color='b')
+    # # 画出采样数据点
+    # plt.scatter(x_sapmpledata, y_sampledata)
     # 画出预测函数
+    plt.plot(x, y_query, color='r')
+
+    plt.show()
 
 
 if __name__ == '__main__':
-    pass
+    linearfit(0.01, 100)

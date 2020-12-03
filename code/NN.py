@@ -420,9 +420,10 @@ def demo_linearfit2(lr,epoch=100):
     x_query = np.asfarray(x_query)
     query_inputs = (x_query / (max(x_query) - min(x_query)) * 0.99) + .01
     res = [float(n.query(j)) for j in query_inputs]
-    # 画出原始图像
-    plt.scatter(inputs, targets)
-    #画出预测曲线
+    print(res)
+    # # 画出原始图像
+    # plt.scatter(inputs, targets)
+    # #画出预测曲线
     plt.plot(x_query,res,color='r')
     plt.show()
 
