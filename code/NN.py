@@ -411,12 +411,12 @@ def demo_linearfit2_func(beta, X):
 def demo_linearfit2(lr, frequ=100):
     # 构造神经网络
     inputnodes = 1
-    hidennodes = 5
+    hidennodes = 10
     outputnodes = 1
 
     n = neuralNetwork(inputnodes, hidennodes, outputnodes, lr)
     # 自定义权重矩阵
-    n.set_w(0.6, 0.4)
+    n.set_w(1, 0.4)
     # 输出此时的神经网络权重
     print("训练前：\nwih层的权重为{},\nwho的权重矩阵为{}".format(n.get_wh()[0], n.get_wh()[1]))
     # 训练神经网络
@@ -469,12 +469,12 @@ def just_query(frequ, ih=None, ho=None):
     n = neuralNetwork(inputnodes, hidennodes, outputnodes, learningrate=0.06)
     n.reset_w(
         np.array(
-            [[0.60342686],
-             [0.60342686],
-             [0.60342686],
-             [0.60342686],
-             [0.60342686]]),
-        np.array([[0.37877123, 0.37877123, 0.37877123, 0.37877123, 0.37877123]])
+            [[0.6],
+             [0.6],
+             [0.6],
+             [0.6],
+             [0.6]]),
+        np.array([[0.4, 0.4, 0.4, 0.4, 0.4]])
     )
     # 用1000个数据进行拟合
     x_query = np.linspace(-2, 2, 1000)
