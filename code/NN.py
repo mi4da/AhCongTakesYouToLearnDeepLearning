@@ -51,7 +51,8 @@ class neuralNetwork:
         self.who += self.lr * np.dot((output_error * final_outputs * (1.0 - final_outputs)),
                                      np.transpose(hidden_outputs))
         # 更新隐藏层与输入层的权重
-        self.wih += self.lr * np.dot((hidden_errors * hidden_outputs * (1.0 - hidden_outputs)), np.transpose(inputs))
+        self.wih += self.lr * np.dot((hidden_errors * hidden_outputs * (1.0 - hidden_outputs)),
+                                     np.transpose(inputs))
 
     # 查询 给定输入从输出街店给出答案
     def query(self, input_list):
