@@ -32,7 +32,21 @@ class ANN(neuralNetwork):
         # 计算隐藏层误差
         hidden_errors = self.who.T @ output_error
         # 更新隐藏层与输入层的权重
+<<<<<<< Updated upstream
         self.update_who(output_error, final_outputs, hidden_outputs)
+=======
+        """这里的梯度下降法所使用的不是”梯度向量“而是”雅克比矩阵“，
+        参考：https://blog.csdn.net/liuliqun520/article/details/80019507
+        不过一样有办法计算模长，既然要求的是MSE也就是军方根误差最小，而雅克比矩阵的每一行都是函数对自变量求一阶偏导的向量的转置，
+        那么就相当于雅克比矩阵的范数就是每个独立向量的和的模长（不是知道这些向量是否在同一空间里能否直接加和，但根据向量的平移性，应该是可以直接加和的）
+        
+        或者我们就用最原始lossfuction来规范，画出图像来那样子。
+        
+        """
+        self.update_who(output_error,final_outputs,final_inputs,hidden_outputs)
+
+
+>>>>>>> Stashed changes
         # 更新输入层与隐藏层的权重
         self.update_wih(hidden_errors, hidden_outputs, inputs)
         # 更新隐藏层的偏置
