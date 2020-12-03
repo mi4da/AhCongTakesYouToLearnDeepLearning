@@ -445,7 +445,7 @@ def demo_linearfit2(lr, frequ=100):
         print("训练第{}次：\nwih层的权重为{},\nwho的权重矩阵为{}".format(i, n.get_wh()[0], n.get_wh()[1]))
     # 用1000个数据进行拟合
     x_query = np.linspace(-2, 2, 1000)
-    x_query = np.asfarray(x_query)
+    x_query = np.asfarray(x_query
     # query_inputs = (x_query / (max(x_query) - min(x_query)) * 0.99) + .01
     res = [float(n.query(j)) for j in x_query]
     res = np.array(res)
