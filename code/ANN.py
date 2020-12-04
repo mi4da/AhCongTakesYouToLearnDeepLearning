@@ -9,9 +9,11 @@ class ANN(neuralNetwork):
     def __init__(self, inputnodes, hiddennodes, outputnodes, learningrate):
         super().__init__(inputnodes, hiddennodes, outputnodes, learningrate)
         # 初始化隐藏层偏置
-        self.hidden_bias = (np.random.normal(0.0, 1.0, (self.hnodes, 1)))
+        self.hidden_bias = (np.random.normal(0.0, np.random.randint(1,10,1), (self.hnodes, 1)))
         # 初始化输出层偏置
-        self.output_bias = (np.random.normal(0.0, 1.0, (self.onodes, 1)))
+        self.output_bias = (np.random.normal(0.0, np.random.randint(1,10,1), (self.onodes, 1)))
+        # 定义激活函数反函数
+        self.inverse_activation_function = lambda x: ss.logit(x)
 
     def train(self, input_list, target_list):
         # 构造目标矩阵
@@ -20,11 +22,13 @@ class ANN(neuralNetwork):
         inputs = np.array(input_list, ndmin=2).T
         # 计算隐藏层的输入
         hidden_inputs = self.wih @ inputs + self.hidden_bias
+        # hidden_inputs = self.wih @ inputs
         # print(hidden_inputs)
         # 计算隐藏层输出
         hidden_outputs = self.activation_function(hidden_inputs)
         # 计算输出层输入
         final_inputs = self.who @ hidden_outputs + self.output_bias
+        # final_inputs = self.who @ hidden_outputs
         # 计算输出层输出
         final_outputs = self.activation_function(final_inputs)
         # 计算输出层误差
@@ -40,53 +44,56 @@ class ANN(neuralNetwork):
         或者我们就用最原始lossfuction来规范，画出图像来那样子。
         
         """
-        self.update_who(output_error,final_outputs,hidden_outputs)
+        self.update_who(output_error,final_outputs,hidden_outputs,max_iter=1000)
         # 更新输入层与隐藏层的权重
-        self.update_wih(hidden_errors, hidden_outputs, inputs)
+        self.update_wih(hidden_errors, hidden_outputs, inputs,max_iter=1000)
         # 更新隐藏层的偏置
-        self.update_bh(hidden_errors, hidden_outputs)
+        self.update_bh(hidden_errors, hidden_outputs,max_iter=1000)
         # 更新输出层的偏置
-        self.update_bo(output_error, final_outputs)
+        self.update_bo(output_error, final_outputs,max_iter=1000)
+        # 计算军方根误差
+        # self.MSE()
 
-    def update_who(self, output_error, final_outputs, hidden_outputs):
+
+    def update_who(self, output_error, final_outputs, hidden_outputs,max_iter=1):
         # self.who += self.lr * np.dot((output_error * final_inputs * (1-final_outputs)),np.transpose(hidden_outputs))
         # 使用普范数
         jacobin = np.dot((output_error * final_outputs * (1 - final_outputs)),
                          np.transpose(hidden_outputs))
         count = 0
-        while np.linalg.norm(jacobin, 2) >= 10 ** (-5) and count <= 100:
+        while np.linalg.norm(jacobin, 2) > 10 ** (-3) and count <= max_iter:
             jacobin = np.dot((output_error * final_outputs * (1 - final_outputs)), np.transpose(hidden_outputs))
             self.who += self.lr * jacobin
             count += 1
-            print("who 谱范数：{}".format(np.linalg.norm(jacobin, 2)))
+            #print("who 谱范数：{}".format(np.linalg.norm(jacobin, 2)))
 
-    def update_wih(self, hidden_errors, hidden_outputs, inputs):
+    def update_wih(self, hidden_errors, hidden_outputs, inputs,max_iter=1):
         jacobin = np.dot((hidden_errors * hidden_outputs * (1 - hidden_outputs)),
                          np.transpose(inputs))
         count = 0
-        while np.linalg.norm(jacobin, 2) >= 10 ** (-5) and count <= 100:
+        while np.linalg.norm(jacobin, 2) > 10 ** (-3) and count <= max_iter:
             jacobin = np.dot((hidden_errors * hidden_outputs * (1 - hidden_outputs)), np.transpose(inputs))
             self.wih += self.lr * jacobin
             count += 1
-            print("wih 谱范数：{}".format(np.linalg.norm(jacobin, 2)))
+            #print("wih 谱范数：{}".format(np.linalg.norm(jacobin, 2)))
 
-    def update_bo(self, output_error, final_outputs):
+    def update_bo(self, output_error, final_outputs,max_iter=1):
         grid = output_error * final_outputs * (1 - final_outputs)
         count = 0
-        while np.linalg.norm(grid, 2) >= 10 ** (-5) and count <= 100:
+        while np.linalg.norm(grid, 2) > 10 ** (-3) and count <= max_iter:
             grid = output_error * final_outputs * (1 - final_outputs)
             self.output_bias += self.lr * grid
             count += 1
-            print("bih 范数：{}".format(np.linalg.norm(grid, 2)))
+            #print("bih 范数：{}".format(np.linalg.norm(grid, 2)))
 
-    def update_bh(self, hidden_errors, hidden_outputs):
+    def update_bh(self, hidden_errors, hidden_outputs,max_iter=1):
         grid = hidden_errors * hidden_outputs * (1 - hidden_outputs)
         count = 0
-        while np.linalg.norm(grid, 2) >= 10 ** (-5) and count <= 100:
+        while np.linalg.norm(grid, 2) > 10 ** (-3) and count <= max_iter:
             grid = hidden_errors * hidden_outputs * (1 - hidden_outputs)
-            self.hidden_bias += -self.lr * grid
+            self.hidden_bias += self.lr * grid
             count += 1
-            print("bho 范数：{}".format(np.linalg.norm(grid, 2)))
+            #print("bho 范数：{}".format(np.linalg.norm(grid, 2)))
 
     # 重写查询函数（正向传播）
     def query(self, input_list):
@@ -149,11 +156,15 @@ def linearfit(lr, epoch):
     # 获得采样数据的反函数值
     x_sapmpledata = inverse_function(y_sampledata)
     # 归一化输入？
-    x = (x_sapmpledata / (max(x_sapmpledata) - min(x_sapmpledata)) * 0.99) + .01
+    # x = (x_sapmpledata / (max(x_sapmpledata) - min(x_sapmpledata)) * 0.99) + .01
+    # sigmod标签\
+    # target = (y_sampledata / (max(y_sampledata) - min(y_sampledata)) * 0.99) + .01
+    target = np.array([ss.expit(i) for i in y_sampledata])
+
     # 不归一化
-    # x = x_sapmpledata
-    # 归一化标签\
-    target = (y_sampledata / (max(y_sampledata) - min(y_sampledata)) * 0.99) + .01
+    x = x_sapmpledata
+    # 不归一化标签
+    # target = y_sampledata
     # 训练神经网络
     for i in range(epoch):
         n.train(x[i], target[i])
@@ -164,18 +175,23 @@ def linearfit(lr, epoch):
 
     # 构造查询输入数据
     x = np.linspace(-1, 1, 1000)
+    # 归一化
+    # x = (x_sapmpledata / (max(x_sapmpledata) - min(x_sapmpledata)) * 0.99) + .01
     x_query = np.asfarray(x)
     # 查询输出
     y_query = np.array([float(n.query(j)) for j in x_query])
     # 答应输出
-    print("查询输出",y_query)  # 反归一化输出
-    y_query = (y_query - .01) * (max(y_query) - min(y_query)) / 0.99
-    # 打印反归一化输出
-    print("反归一化输出为：",y_query)
+    print("查询输出",y_query)
+    # 反激活函数输出
+    y_query = [ss.logit(i) for i in y_query]
+    # 打印反激活函数输出
+    print("反激活函数输出：",y_query)
+    # 打印标签
+    print("标签",target)
     # 画出原函数图像
-    # plt.plot(x, sampling_function(x), color='b')
+    plt.plot(x, sampling_function(x), color='b')
     # # 画出采样数据点
-    # plt.scatter(x_sapmpledata, y_sampledata)
+    plt.scatter(x_sapmpledata, y_sampledata)
     # 画出预测函数
     plt.plot(x, y_query, color='r')
 
@@ -183,4 +199,4 @@ def linearfit(lr, epoch):
 
 
 if __name__ == '__main__':
-    linearfit(0.01, 100)
+    linearfit(0.008, 100)
