@@ -9,9 +9,9 @@ class ANN(neuralNetwork):
     def __init__(self, inputnodes, hiddennodes, outputnodes, learningrate):
         super().__init__(inputnodes, hiddennodes, outputnodes, learningrate)
         # 初始化隐藏层偏置
-        self.hidden_bias = (np.random.normal(0.0, np.random.randint(1, 10, 1), (self.hnodes, 1)))
+        self.hidden_bias = (np.random.normal(pow(self.hnodes, -.5),0.0 , (self.hnodes, 1)))
         # 初始化输出层偏置
-        self.output_bias = (np.random.normal(0.0, np.random.randint(1, 10, 1), (self.onodes, 1)))
+        self.output_bias = (np.random.normal(0.0, pow(self.onodes, -.5), (self.onodes, 1)))
         # 定义激活函数反函数
         self.inverse_activation_function = lambda x: ss.logit(x)
 
@@ -107,8 +107,9 @@ class ANN(neuralNetwork):
         # 计算输出层输入
         final_inputs = self.who @ hidden_outputs + self.output_bias
         # 计算输出层输出
-        final_outputs = self.activation_function(final_inputs)
+        # final_outputs = self.activation_function(final_inputs)
         # 返回最终的输出
+        final_outputs = final_inputs
         return final_outputs
 
     # 添加一个输出偏置的函数
@@ -129,7 +130,7 @@ def sampling_function(x=np.linspace(-1, 1, 1000), beta=None):
 def get_sample(num):
     x = np.linspace(-1, 1, 1000)
 
-    sample_x = np.random.choice(x, num, replace=True)
+    sample_x = np.random.choice(x, num, replace=True)#F代表有放回，T代表无放回
     sample_y = sampling_function(sample_x)
     return (sample_x, sample_y)
 
@@ -150,9 +151,9 @@ def linearfit(lr, epoch):
     learningrate = lr
     n = ANN(inputnodes, hiddennodes, outputnodes, learningrate)
     # 获得训练前的权重矩阵
-    print("训练前：\nih层的权重为{},\nho的权重矩阵为{}".format(n.get_wh()[0], n.get_wh()[1]))
+    # print("训练前：\nih层的权重为{},\nho的权重矩阵为{}".format(n.get_wh()[0], n.get_wh()[1]))
     # 获取训练前的偏置向量
-    print("训练前：\nih层的偏置为{},\nho层的偏置为{}".format(n.get_bias()[0], n.get_bias()[1]))
+    # print("训练前：\nih层的偏置为{},\nho层的偏置为{}".format(n.get_bias()[0], n.get_bias()[1]))
     """# 训练神经网络"""
     # 获得采样数据的x,y值
     x_sampledata, y_sampledata = get_sample(epoch)
@@ -226,4 +227,92 @@ def linearfit(lr, epoch):
 
 
 if __name__ == '__main__':
-    linearfit(0.008, 100)
+    inputnodes = 1
+    hiddennodes = 100
+    outputnodes = 1
+    learningrate = 0.008
+    epoch = 500
+    np.random.seed(3)
+    n = ANN(inputnodes, hiddennodes, outputnodes, learningrate)
+    # 获得训练前的权重矩阵
+    # print("训练前：\nih层的权重为{},\nho的权重矩阵为{}".format(n.get_wh()[0], n.get_wh()[1]))
+    # 获取训练前的偏置向量
+    # print("训练前：\nih层的偏置为{},\nho层的偏置为{}".format(n.get_bias()[0], n.get_bias()[1]))
+    """# 训练神经网络"""
+    # 获得不重复采样数据的x,y值
+    x_sampledata, y_sampledata = get_sample(epoch)
+    print("采样的x：{}\ny:{}".format(x_sampledata[:10],y_sampledata[:10]))
+    # 归一化输入？
+    # x = (x_sampledata / (max(x_sapmpledata) - min(x_sapmpledata)) * 0.99) + .01
+    # sigmod化标签\
+    # target = (y_sampledata / (max(y_sampledata) - min(y_sampledata)) * 0.99) + .01
+    target = np.array([ss.expit(i) for i in y_sampledata])
+
+    # 不归一化
+    x = x_sampledata
+    # 不归一化标签
+    # target = y_sampledata
+    # 训练神经网络
+    losses = []
+    hidden_losses = []
+    for i in range(epoch):
+        n.train(x[i], target[i])
+        # 训练第i次的权重矩阵
+        # print("训练第{}次：\nih层的权重为{},\nho的权重矩阵为{}".format(i + 1, n.get_wh()[0], n.get_wh()[1]))
+        # 获取训练第i次的偏置向量
+        # print("训练第{}次：\nih层的偏置为{},\nho层的偏置为{}".format(i + 1, n.get_bias()[0], n.get_bias()[1]))
+        losses.append(n.loss)
+        # 获得隐藏层总误差
+        hidden_losses.append(n.hidden_loss)
+    # 打印最后一次训练的误差
+    print("打印最后一次训练的误差:",n.loss)
+    # 打印最后一次隐藏层总和误差
+    print("打印最后一次隐藏层总和误差:",n.hidden_loss)
+
+
+    # 构造查询输入数据
+    x = np.linspace(-1, 1, 1000)
+    # 归一化
+    # x = (x_sapmpledata / (max(x_sapmpledata) - min(x_sapmpledata)) * 0.99) + .01
+    x_query = np.asfarray(x)
+    # 查询输出
+    y_query = np.array([float(n.query(j)) for j in x_query])
+    # 答应输出
+    print("查询输出", y_query[:10])
+    # 反激活函数输出
+    # y_query = [ss.logit(i) for i in y_query]
+    # 打印反激活函数输出
+    print("反激活函数输出：", y_query[:10])
+    # 打印标签
+    print("标签", target[:10])
+
+    fig0 = plt.figure(figsize=(4, 4))
+    # 画出原函数图像
+    plt.plot(x, sampling_function(x), color='b')
+
+    # 画出采样数据点
+    plt.scatter(x_sampledata, y_sampledata)
+
+    # 画出预测函数
+    plt.plot(x, y_query, color='r')
+    plt.show()
+
+    # 画出输出层误差曲线
+    fig1 = plt.figure(figsize=(4, 4))
+    plt.plot([i for i in range(len(losses))], losses)
+    plt.title("output_losses")
+    plt.show()
+
+    # 画出隐藏层误差曲线
+    fig2 = plt.figure(figsize=(4, 4))
+    plt.plot([i for i in range(len(hidden_losses))], hidden_losses)
+    plt.title("hidden_losses")
+    plt.show()
+
+    # 单独画出预测函数
+    fig3 = plt.figure(figsize=(4, 4))
+    plt.plot(x, y_query, color='r')
+    plt.title('only_fit')
+    plt.show()
+
+

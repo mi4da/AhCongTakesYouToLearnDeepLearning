@@ -23,7 +23,7 @@ class neuralNetwork:
         # self.woh = (np.random.rand(self.onodes,self.hnodes))
         # 使用正态分布采样权重，期望是0，方差是1/下一层节点数**-.5
         self.wih = (np.random.normal(0.0, pow(self.hnodes, -.5), (self.hnodes, self.inodes)))
-        self.who = (np.random.normal(0.0, pow(self.hnodes, -.5), (self.onodes, self.hnodes)))
+        self.who = (np.random.normal(0.0, pow(self.onodes, -.5), (self.onodes, self.hnodes)))
         # 定义激活函数
         self.activation_function = lambda x: ss.expit(x)
 
