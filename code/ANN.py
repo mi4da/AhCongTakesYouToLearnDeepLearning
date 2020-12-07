@@ -3,19 +3,24 @@ import numpy as np
 import scipy.special as ss
 import matplotlib.pyplot as plt
 from NN import neuralNetwork
+from data_create import DataCreater
+
+"""预测器，将全部是训练数据的均方根误差计算出来，再反向传播，迭代n次"""
 
 
 class ANN(neuralNetwork):
     def __init__(self, inputnodes, hiddennodes, outputnodes, learningrate):
         super().__init__(inputnodes, hiddennodes, outputnodes, learningrate)
         # 初始化隐藏层偏置
-        self.hidden_bias = (np.random.normal(pow(self.hnodes, -.5), 0.0, (self.hnodes, 1)))
+        self.hidden_bias = (np.random.normal(0.0, pow(self.hnodes, -.5), (self.hnodes, 1)))
         # 初始化输出层偏置
         self.output_bias = (np.random.normal(0.0, pow(self.onodes, -.5), (self.onodes, 1)))
         # 定义激活函数反函数
         self.inverse_activation_function = lambda x: ss.logit(x)
+        # 定义误差列表
+        self.losses = []
 
-    def train(self, input_list, target_list):
+    def train_forward(self, input_list, target_list):
         # 构造目标矩阵
         targets = np.array(target_list, ndmin=2).T  # 最小维数为2，列向量
         # 构建输入矩阵
@@ -33,28 +38,53 @@ class ANN(neuralNetwork):
         final_outputs = final_inputs
         # 计算输出层误差
         output_error = targets - final_outputs
-        # 计算隐藏层误差
-        hidden_errors = self.who.T @ output_error
-        # 更新隐藏层与输入层的权重
-        """
-        这里的梯度下降法所使用的不是”梯度向量“而是”雅克比矩阵“，
-        参考：https://blog.csdn.net/liuliqun520/article/details/80019507
-        不过一样有办法计算模长，既然要求的是MSE也就是军方根误差最小，而雅克比矩阵的每一行都是函数对自变量求一阶偏导的向量的转置，
-        那么就相当于雅克比矩阵的范数就是每个独立向量的和的模长（不是知道这些向量是否在同一空间里能否直接加和，但根据向量的平移性，应该是可以直接加和的）  
-        或者我们就用最原始lossfuction来规范，画出图像来那样子。
-        
-        """
-        self.update_who(output_error, hidden_outputs, max_iter=1000)
-        # 更新输入层与隐藏层的权重
-        self.update_wih(hidden_errors, hidden_outputs, inputs, max_iter=1000)
-        # 更新隐藏层的偏置
-        self.update_bh(hidden_errors, hidden_outputs, max_iter=1000)
-        # 更新输出层的偏置
-        self.update_bo(output_error, max_iter=1000)
-        # 计算军方根误差
-        self.loss = float(output_error ** 2)
-        # 计算隐藏层的总误差
-        self.hidden_loss = sum(hidden_errors ** 2) / 2 * len(hidden_errors)
+        # 将误差保存
+        self.losses.append(output_error)
+        # 将最后一次的隐藏层输出保存
+        self.last_hidden_outputs = hidden_outputs
+        # 保留最后一次输入
+        self.last_inputs = inputs
+
+    def sum_losses(self):
+        # 计算均方根误差
+        self.sum_losses = sum(np.array(self.losses) ** 2) / (2 * len(self.losses))
+        print("均方误差为：", self.sum_losses)
+
+    # 反向传播过程
+    def train_backword(self, i, j):
+
+
+        # 计算均方根误差
+        if j % 100 == 0:
+            self.sum_losses = sum(np.array(self.losses) ** 2) / (2 * len(self.losses))
+            print("均方误差为: ",self.sum_losses)
+
+        # 计算局方误差的导数
+        # self.losses = sum(self.losses) / len(self.losses)
+        self.losses = np.sqrt(self.sum_losses)
+        if j % 100 == 0:
+            print("误差和：{},均方误差导数：{}".format(self.losses,np.sqrt(self.sum_losses)))
+
+
+        # 更新who
+        self.who += i * self.lr * self.losses * np.transpose(self.last_hidden_outputs)
+        # 更新ob
+        self.output_bias += i * self.lr * self.losses
+        # 将误差分配到wih上
+        hidden_errors = i * self.who.T @ self.losses
+        # 更新wih
+        jacobin = np.dot((hidden_errors * self.last_hidden_outputs * (1 - self.last_hidden_outputs)),
+                         np.transpose(self.last_inputs))
+        self.wih += i * self.lr * jacobin
+        # 更新hb
+        grid = hidden_errors * self.last_hidden_outputs * (1 - self.last_hidden_outputs)
+        self.hidden_bias += i * self.lr * grid
+        # 均方根误差归零
+        self.losses = []
+
+    # 训练函数
+    def train(self, input_list, target_list):
+        pass
 
     def update_who(self, output_error, hidden_outputs, max_iter=1):
         # self.who += self.lr * np.dot((output_error * final_inputs * (1-final_outputs)),np.transpose(hidden_outputs))
@@ -119,7 +149,7 @@ class ANN(neuralNetwork):
 """# 大坑！默认参数必须指向不可变对象！！！！"""
 
 
-def sampling_function(x=np.linspace(0,60, 50), beta=None):
+def sampling_function(x=np.linspace(0, 60, 50), beta=None):
     if beta == None:
         beta = [1, 2, 3]
     return beta[0] * x + beta[1] * x ** 2 + beta[2]
@@ -329,56 +359,40 @@ if __name__ == '__main__':
     # 输入与输出不做变换，输出层无激活函数
     """初始化神经网络"""
     inputnodes = 1
-    hiddennodes = 100
+    hiddennodes = 5
     outputnodes = 1
-    learningrate = 0.001
-    epoch = 500
-    np.random.seed(3)
+    learningrate = 0.2
+    np.random.seed(1)
     n = ANN(inputnodes, hiddennodes, outputnodes, learningrate)
 
-    """获取采样数据"""
-    # sample_x, sample_y = get_sample(epoch)
-    sample_x,sample_y = np.linspace(0,1,500),sampling_function(np.linspace(0,1,500))
-    """训练"""
-    losses = []
-    hidden_losses = []
-    for i in range(epoch):
-        n.train(sample_x[i], sample_y[i])
-        losses.append(n.loss)
-        hidden_losses.append(n.hidden_loss)
+    """获取训练数据"""
+    num = 300
+    data = DataCreater(num)  # 获取50个
+    # 将x归一化
+    data.normliza_x()
+    x, y = data.get_data()
+
+    """
+    训练
+    
+    训练n个数据，获取到总误差（均方误差），进行一次反向传播，此为完成一次迭代.
+    第二次再将n个数据带入，再计算一次误差，再反向传播，迭代m次.
+    """
+    m = 1000
+    for j in range(m):
+        for i in range(num):
+            n.train_forward(x[i], y[i])
+        n.train_backword(i=1, j=j)
+
     """查询"""
-    # 构造查询数据集
-    x = np.linspace(0.1,1,1000)
-    x_query = np.asfarray(x)
-    # 查询输出
-    y_query = np.array([float(n.query(j)) for j in x_query])
-
-    """画图"""
-    fig0 = plt.figure(figsize=(4, 4))
-    # 画出原函数图像
-    plt.plot(x, sampling_function(x), color='b')
-
-    # 画出采样数据点
-    plt.scatter(sample_x, sample_y)
-
-    # 画出预测函数
-    plt.plot(x, y_query, color='r')
+    # 生成1000个归一化后的数据
+    query = DataCreater(100)
+    query.normliza_x()
+    x_query, _ = query.get_data()
+    y_query = [float(n.query(j)) for j in x_query]
+    fig = plt.figure(figsize=(4, 4))
+    # 画出预测图像
+    plt.plot(x_query, y_query, color='r')
     plt.show()
-
-    # 画出输出层误差曲线
-    fig1 = plt.figure(figsize=(4, 4))
-    plt.plot([i for i in range(len(losses))], losses)
-    plt.title("output_losses")
-    plt.show()
-
-    # 画出隐藏层误差曲线
-    fig2 = plt.figure(figsize=(4, 4))
-    plt.plot([i for i in range(len(hidden_losses))], hidden_losses)
-    plt.title("hidden_losses")
-    plt.show()
-
-    # 单独画出预测函数
-    fig3 = plt.figure(figsize=(4, 4))
-    plt.plot(x, y_query, color='r')
-    plt.title('only_fit')
-    plt.show()
+    # 画出原始图像
+    query.plot_data()
