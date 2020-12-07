@@ -32,7 +32,7 @@ class ANN(neuralNetwork):
         # 计算输出层输出
         final_outputs = final_inputs
         # 计算输出层误差
-        output_error = targets - final_outputs
+        output_error = (targets - final_outputs) ** 2
         # 计算隐藏层误差
         hidden_errors = self.who.T @ output_error
         # 更新隐藏层与输入层的权重
@@ -42,28 +42,29 @@ class ANN(neuralNetwork):
         不过一样有办法计算模长，既然要求的是MSE也就是军方根误差最小，而雅克比矩阵的每一行都是函数对自变量求一阶偏导的向量的转置，
         那么就相当于雅克比矩阵的范数就是每个独立向量的和的模长（不是知道这些向量是否在同一空间里能否直接加和，但根据向量的平移性，应该是可以直接加和的）  
         或者我们就用最原始lossfuction来规范，画出图像来那样子。
-        
+
         """
-        self.update_who(output_error, hidden_outputs, max_iter=1000)
+        self.update_who(output_error, final_outputs, hidden_outputs, max_iter=1000)
         # 更新输入层与隐藏层的权重
         self.update_wih(hidden_errors, hidden_outputs, inputs, max_iter=1000)
         # 更新隐藏层的偏置
         self.update_bh(hidden_errors, hidden_outputs, max_iter=1000)
         # 更新输出层的偏置
-        self.update_bo(output_error, max_iter=1000)
+        self.update_bo(output_error, final_outputs, max_iter=1000)
         # 计算军方根误差
         self.loss = float(output_error ** 2)
         # 计算隐藏层的总误差
         self.hidden_loss = sum(hidden_errors ** 2) / 2 * len(hidden_errors)
 
-    def update_who(self, output_error, hidden_outputs, max_iter=1):
+    def update_who(self, output_error, final_outputs, hidden_outputs, max_iter=1):
         # self.who += self.lr * np.dot((output_error * final_inputs * (1-final_outputs)),np.transpose(hidden_outputs))
         # 使用普范数
-        jacobin = output_error * np.transpose(hidden_outputs)
+        jacobin = np.dot((output_error * final_outputs * (1 - final_outputs)),
+                         np.transpose(hidden_outputs))
         count = 0
         while np.linalg.norm(jacobin, 2) > 10 ** (-3) and count <= max_iter:
-            jacobin = output_error * np.transpose(hidden_outputs)
-            self.who += -self.lr * jacobin
+            jacobin = np.dot((output_error * final_outputs * (1 - final_outputs)), np.transpose(hidden_outputs))
+            self.who += self.lr * jacobin
             count += 1
             # print("who 谱范数：{}".format(np.linalg.norm(jacobin, 2)))
 
@@ -73,16 +74,16 @@ class ANN(neuralNetwork):
         count = 0
         while np.linalg.norm(jacobin, 2) > 10 ** (-3) and count <= max_iter:
             jacobin = np.dot((hidden_errors * hidden_outputs * (1 - hidden_outputs)), np.transpose(inputs))
-            self.wih += -self.lr * jacobin
+            self.wih += self.lr * jacobin
             count += 1
             # print("wih 谱范数：{}".format(np.linalg.norm(jacobin, 2)))
 
-    def update_bo(self, output_error, max_iter=1):
-        grid = output_error
+    def update_bo(self, output_error, final_outputs, max_iter=1):
+        grid = output_error * final_outputs * (1 - final_outputs)
         count = 0
         while np.linalg.norm(grid, 2) > 10 ** (-3) and count <= max_iter:
-            grid = output_error
-            self.output_bias += -self.lr * grid
+            grid = output_error * final_outputs * (1 - final_outputs)
+            self.output_bias += self.lr * grid
             count += 1
             # print("bih 范数：{}".format(np.linalg.norm(grid, 2)))
 
@@ -91,7 +92,7 @@ class ANN(neuralNetwork):
         count = 0
         while np.linalg.norm(grid, 2) > 10 ** (-3) and count <= max_iter:
             grid = hidden_errors * hidden_outputs * (1 - hidden_outputs)
-            self.hidden_bias += -self.lr * grid
+            self.hidden_bias += self.lr * grid
             count += 1
             # print("bho 范数：{}".format(np.linalg.norm(grid, 2)))
 
@@ -119,7 +120,7 @@ class ANN(neuralNetwork):
 """# 大坑！默认参数必须指向不可变对象！！！！"""
 
 
-def sampling_function(x=np.linspace(0,60, 50), beta=None):
+def sampling_function(x=np.linspace(-1, 1, 1000), beta=None):
     if beta == None:
         beta = [1, 2, 3]
     return beta[0] * x + beta[1] * x ** 2 + beta[2]
@@ -127,7 +128,7 @@ def sampling_function(x=np.linspace(0,60, 50), beta=None):
 
 # 获取采样的值
 def get_sample(num):
-    x = np.linspace(0.1, 1, 1000)
+    x = np.linspace(-1, 1, 1000)
 
     sample_x = np.random.choice(x, num, replace=True)  # F代表有放回，T代表无放回
     sample_y = sampling_function(sample_x)
@@ -331,54 +332,16 @@ if __name__ == '__main__':
     inputnodes = 1
     hiddennodes = 100
     outputnodes = 1
-    learningrate = 0.001
-    epoch = 500
+    learningrate = 0.008
+    epoch = 15
     np.random.seed(3)
     n = ANN(inputnodes, hiddennodes, outputnodes, learningrate)
 
     """获取采样数据"""
-    # sample_x, sample_y = get_sample(epoch)
-    sample_x,sample_y = np.linspace(0,1,500),sampling_function(np.linspace(0,1,500))
+    sample_x, sample_y = get_sample(epoch)
     """训练"""
-    losses = []
-    hidden_losses = []
     for i in range(epoch):
         n.train(sample_x[i], sample_y[i])
-        losses.append(n.loss)
-        hidden_losses.append(n.hidden_loss)
     """查询"""
-    # 构造查询数据集
-    x = np.linspace(0.1,1,1000)
-    x_query = np.asfarray(x)
-    # 查询输出
-    y_query = np.array([float(n.query(j)) for j in x_query])
 
-    """画图"""
-    fig0 = plt.figure(figsize=(4, 4))
-    # 画出原函数图像
-    plt.plot(x, sampling_function(x), color='b')
 
-    # 画出采样数据点
-    plt.scatter(sample_x, sample_y)
-
-    # 画出预测函数
-    plt.plot(x, y_query, color='r')
-    plt.show()
-
-    # 画出输出层误差曲线
-    fig1 = plt.figure(figsize=(4, 4))
-    plt.plot([i for i in range(len(losses))], losses)
-    plt.title("output_losses")
-    plt.show()
-
-    # 画出隐藏层误差曲线
-    fig2 = plt.figure(figsize=(4, 4))
-    plt.plot([i for i in range(len(hidden_losses))], hidden_losses)
-    plt.title("hidden_losses")
-    plt.show()
-
-    # 单独画出预测函数
-    fig3 = plt.figure(figsize=(4, 4))
-    plt.plot(x, y_query, color='r')
-    plt.title('only_fit')
-    plt.show()
