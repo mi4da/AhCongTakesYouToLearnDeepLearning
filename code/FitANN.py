@@ -111,28 +111,47 @@ if __name__ == '__main__':
     # 设置衰减学习率
     decay = 0.001
     epoch = 10000  # 训练次数
+    """动画"""
+    plt.ion()
     for j in range(epoch):
         for i in range(num):
             n.train(x[i], y[i])
         # lr = learningrate / (1 + learningrate * decay)
         # n.set_lr(lr)
+
         if j % 100 == 0:
+            """查询"""
+            num_query = 1000
+            data_query = DataCreater(num_query)
+            data_query.normliza_x()
+            once_x_query, _ = data_query.get_data()
+            once_y_query = [float(n.query(j)) for j in once_x_query]
+
+            plt.cla()
+            data.plot_data()
+            plt.plot(once_x_query,once_y_query,color='r')
             if len(n.losses) != 0:
-                print("第{}次均方误差为{}".format(j, n.get_sumlosses()))
+                plt.text(0.5,0,"LOSS=%.4f" % n.get_sumlosses(), fontdict={'size': 20, 'color':  'red'})
+                # print("第{}次均方误差为{}".format(j, n.get_sumlosses()))
+            plt.show()
+            plt.pause(0.1)
+
+
         # 误差归零
         n.losses = []
-    """查询"""
-    num_query = 1000
-    data_query = DataCreater(num_query)
-    data_query.normliza_x()
-    x_query, _ = data_query.get_data()
-    y_query = [float(n.query(j)) for j in x_query]
+    plt.ioff()
+    # """查询"""
+    # num_query = 1000
+    # data_query = DataCreater(num_query)
+    # data_query.normliza_x()
+    # x_query, _ = data_query.get_data()
+    # y_query = [float(n.query(j)) for j in x_query]
 
-    """画图"""
-    fig = plt.figure(figsize=(4, 4))
-    # 画出预测图像
-    plt.plot(x_query, y_query, color='r')
-    plt.show()
-    # # 画出原始图像
-    data.plot_data()
+    # """画图"""
+    # fig = plt.figure(figsize=(4, 4))
+    # # 画出预测图像
+    # plt.plot(x_query, y_query, color='r')
+    # plt.show()
+    # # # 画出原始图像
+    # data.plot_data()
 
