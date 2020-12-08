@@ -94,7 +94,7 @@ if __name__ == '__main__':
     """主逻辑"""
     np.random.seed(1)
     """初始化数据，x归一化，y正常"""
-    num = 100
+    num = 100 # 训练数据数量
     data = DataCreater(num)  # 获取一百个数据
     # 添加随机值
     data.make_random()
@@ -103,10 +103,9 @@ if __name__ == '__main__':
     x, y = data.get_data()
     """初始化神经网络"""
     inputnodes = 1
-    hiddennodes = 50
+    hiddennodes = 10
     outputnodes = 1
     learningrate = 0.001
-    np.random.seed(1)
     n = FitANN(inputnodes, hiddennodes, outputnodes, learningrate)
     """训练"""
     # 设置衰减学习率
