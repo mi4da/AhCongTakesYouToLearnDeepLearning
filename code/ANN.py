@@ -11,10 +11,10 @@ from data_create import DataCreater
 class ANN(neuralNetwork):
     def __init__(self, inputnodes, hiddennodes, outputnodes, learningrate):
         super().__init__(inputnodes, hiddennodes, outputnodes, learningrate)
-        # 初始化隐藏层偏置
-        self.hidden_bias = (np.random.normal(0.0, pow(self.hnodes, -.5), (self.hnodes, 1)))
+        # 初始化隐藏层偏置,偏执设为0试一下
+        self.hidden_bias = np.zeros_like(self.hnodes, 1)
         # 初始化输出层偏置
-        self.output_bias = (np.random.normal(0.0, pow(self.onodes, -.5), (self.onodes, 1)))
+        self.output_bias = np.zeros_like(self.onodes, 1)
         # 定义激活函数反函数
         self.inverse_activation_function = lambda x: ss.logit(x)
         # 定义误差列表
@@ -45,33 +45,24 @@ class ANN(neuralNetwork):
         # 保留最后一次输入
         self.last_inputs = inputs
 
-    def sum_losses(self):
+    # 反向传播过程
+    def train_backword(self, i):
         # 计算均方根误差
         self.sum_losses = sum(np.array(self.losses) ** 2) / (2 * len(self.losses))
-        print("均方误差为：", self.sum_losses)
-
-    # 反向传播过程
-    def train_backword(self, i, j):
-
-
-        # 计算均方根误差
-        if j % 100 == 0:
-            self.sum_losses = sum(np.array(self.losses) ** 2) / (2 * len(self.losses))
-            print("均方误差为: ",self.sum_losses)
+        # if j % 100 == 0:
+        #     sum_losses = sum(np.array(self.losses) ** 2) / (2 * len(self.losses))
+        #     self.get_sumlosses()
+        #     print("第{}次均方误差为: {}".format(j,sum_losses))
 
         # 计算局方误差的导数
-        # self.losses = sum(self.losses) / len(self.losses)
-        self.losses = np.sqrt(self.sum_losses)
-        if j % 100 == 0:
-            print("误差和：{},均方误差导数：{}".format(self.losses,np.sqrt(self.sum_losses)))
-
+        self.losses = sum(self.losses) / len(self.losses)
 
         # 更新who
-        self.who += i * self.lr * self.losses * np.transpose(self.last_hidden_outputs)
+        self.who += i * (self.lr+np.random.random()) * self.losses * np.transpose(self.last_hidden_outputs)
         # 更新ob
         self.output_bias += i * self.lr * self.losses
-        # 将误差分配到wih上
-        hidden_errors = i * self.who.T @ self.losses
+        # 将误差分配到隐藏层上
+        hidden_errors = i * self.who.T @ self.sum_losses
         # 更新wih
         jacobin = np.dot((hidden_errors * self.last_hidden_outputs * (1 - self.last_hidden_outputs)),
                          np.transpose(self.last_inputs))
@@ -79,7 +70,7 @@ class ANN(neuralNetwork):
         # 更新hb
         grid = hidden_errors * self.last_hidden_outputs * (1 - self.last_hidden_outputs)
         self.hidden_bias += i * self.lr * grid
-        # 均方根误差归零
+        # 导数归零
         self.losses = []
 
     # 训练函数
@@ -144,6 +135,12 @@ class ANN(neuralNetwork):
     # 添加一个输出偏置的函数
     def get_bias(self):
         return (self.hidden_bias, self.output_bias)
+    # 修改学习率
+    def set_lr(self,lr):
+        self.lr = lr
+
+    def get_sumlosses(self):
+        return self.sum_losses
 
 
 """# 大坑！默认参数必须指向不可变对象！！！！"""
@@ -361,12 +358,12 @@ if __name__ == '__main__':
     inputnodes = 1
     hiddennodes = 5
     outputnodes = 1
-    learningrate = 0.2
+    learningrate = 0.05
     np.random.seed(1)
     n = ANN(inputnodes, hiddennodes, outputnodes, learningrate)
 
     """获取训练数据"""
-    num = 300
+    num = 15# 15个10个神经元，0.01拟合的不错
     data = DataCreater(num)  # 获取50个
     # 将x归一化
     data.normliza_x()
@@ -378,16 +375,32 @@ if __name__ == '__main__':
     训练n个数据，获取到总误差（均方误差），进行一次反向传播，此为完成一次迭代.
     第二次再将n个数据带入，再计算一次误差，再反向传播，迭代m次.
     """
-    m = 1000
-    for j in range(m):
+    m = 20000
+    losses_lis = []
+    for j in range(1,m+1):
         for i in range(num):
             n.train_forward(x[i], y[i])
-        n.train_backword(i=1, j=j)
+        # 衰减学习率
+        dacy = 0.5
+        learningrate = learningrate/(1+dacy * j)
+        # n.set_lr(learningrate)
+        if j % 100 == 0:  # 每100步检查一次误差是否稳定
+            print("第{}均方误差为：{}".format(j,n.get_sumlosses()))
+        #     losses_lis.append(n.get_sumlosses())
+        #     if (len(losses_lis) > 2) and (losses_lis[-1] - losses_lis[-2] < 0.00001):
+        #         learningrate = learningrate * 1.5
+        #         n.set_lr(learningrate)
+        #     if (len(losses_lis) > 2) and (losses_lis[-1] - losses_lis[-2] >= 0.00001):
+        #         learningrate = learningrate * .09
+        #         n.set_lr(learningrate)
+        n.train_backword(i=1)
+
+
 
     """查询"""
     # 生成1000个归一化后的数据
-    query = DataCreater(100)
-    query.normliza_x()
+    query = DataCreater(num)
+    # query.normliza_x()
     x_query, _ = query.get_data()
     y_query = [float(n.query(j)) for j in x_query]
     fig = plt.figure(figsize=(4, 4))
