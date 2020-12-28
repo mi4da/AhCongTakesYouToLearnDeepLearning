@@ -58,8 +58,8 @@ class FitANN:
         # 更新who
         who_grid = final_error * hidden_outputs.T  # (1*10)
         self.who += i * self.lr * who_grid  # (1*10)
-        # 更新wih (10*8) = (1,1) * (10*1) * (10*1) * (10*1) * (10*8),这里的矩阵乘法不一样哦
-        wih_grid = final_error * self.who.T * hidden_outputs * (1 - hidden_outputs) * input
+        # 更新wih (10*8) = (1,1) * (10*1) * (10*1) * (10*1) @ (1*8),这里的矩阵乘法不一样哦
+        wih_grid = final_error * self.who.T * hidden_outputs * (1 - hidden_outputs) @ input.T
         self.wih += i * self.lr * wih_grid # (10*8)
         # 跟新hb(10*1) = (1,1) * (10*1) * (10*1) * (10*1)
         hb_grid = final_error * self.who.T * hidden_outputs * (1 - hidden_outputs)
@@ -95,14 +95,11 @@ if __name__ == '__main__':
     data = DataCreater()  # 如果空值。意味着获取全部的数据
     # 获取文件数据，返回文件总行数
     num = data.get_csv()
-    # 归一化x
-    data.normliza_x()
-    x, y = data.get_data()  # x此时为矩阵，y为向量
     """初始化神经网络"""
     inputnodes = 8  # 一共有八个特征
     hiddennodes = 10
     outputnodes = 1
-    learningrate = 0.001
+    learningrate = 0.03
     n = FitANN(inputnodes, hiddennodes, outputnodes, learningrate)
     """训练"""
     # 设置衰减学习率
@@ -113,14 +110,15 @@ if __name__ == '__main__':
     loslis = []
     for j in range(epoch):
         for i in range(num):
-            n.train(x[i], y[i])
+            n.train(data.get_train_x(i),data.get_train_y(i))
 
         if j % 100 == 0:  # 每100次查询一次损失函数
             plt.cla()
             if len(n.losses) != 0:
-                loslis.append(n.get_sumlosses())
-                plt.plot(range(len(loslis)), loslis, 'r')
+                loslis.append(float(n.get_sumlosses()))
                 plt.text(0.5, 0, "LOSS=%.4f" % n.get_sumlosses(), fontdict={'size': 20, 'color': 'red'})
+                plt.plot(range(len(loslis)), loslis, 'r')
+
                 # print("第{}次均方误差为{}".format(j, n.get_sumlosses()))
             plt.show()
             plt.pause(0.01)
