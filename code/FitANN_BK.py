@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.special as ss
 from data_create import DataCreater
-
+import time
 
 class FitANN:
     def __init__(self, inputnodes, hiddennodes, outputnodes, learningrate):
@@ -48,7 +48,7 @@ class FitANN:
         # 输出层输入
         final_inputs = self.who @ hidden_outputs  # 1,1
         # 输出层输出
-        final_outputs = final_inputs
+        final_outputs = final_inputs + self.final_bias
         # 获得误差
         final_error = target - final_outputs
         # 添加误差
@@ -58,6 +58,9 @@ class FitANN:
         # 更新who
         who_grid = final_error * hidden_outputs.T  # 1,10
         self.who += i * self.lr * who_grid
+        # 更新fb
+        fb_grid = final_error
+        self.final_bias += i * self.lr * fb_grid
         # 更新wih
         wih_grid = final_error * self.who.T * hidden_outputs * (1 - hidden_outputs) * input  # 10,1
         self.wih += i * self.lr * wih_grid
@@ -76,7 +79,7 @@ class FitANN:
         # 输出层输入
         final_inputs = self.who @ hidden_outputs
         # 输出层输出
-        final_outputs = final_inputs
+        final_outputs = final_inputs + self.final_bias
         return final_outputs
 
     def get_sumlosses(self):
@@ -88,6 +91,7 @@ class FitANN:
 
 
 if __name__ == '__main__':
+    st = time.time()
     """主逻辑"""
     np.random.seed(1)
     """初始化数据，x归一化，y正常"""
@@ -137,6 +141,8 @@ if __name__ == '__main__':
         # 误差归零
         n.losses = []
     plt.ioff()
+    et = time.time()
+    print("总共耗时：",(et-st))
     # """查询"""
     # num_query = 1000
     # data_query = DataCreater(num_query)
