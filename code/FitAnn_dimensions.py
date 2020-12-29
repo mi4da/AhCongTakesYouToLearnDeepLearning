@@ -16,7 +16,7 @@ class FitANN:
         self.who = np.random.normal(0.0, pow(self.hnodes, -0.5), (self.onodes, self.hnodes))
         """初始化偏置，全为0"""
         self.hidden_bias = np.zeros((self.hnodes, 1))
-        self.final_bias = np.zeros((self.onodes, 1))
+        # self.final_bias = np.zeros((self.onodes, 1))
         """学习率"""
         self.lr = learningrate
         """激活函数"""
@@ -85,7 +85,8 @@ class FitANN:
 
     def set_lr(self, lr):
         self.lr = lr
-
+    def get_lr(self):
+        return self.lr
 
 if __name__ == '__main__':
     """主逻辑"""
@@ -93,17 +94,16 @@ if __name__ == '__main__':
     """初始化数据，x归一化，y正常"""
     # num = 100 # 训练数据数量,这里取全部
     data = DataCreater()  # 如果空值。意味着获取全部的数据
-    # 获取文件数据，返回文件总行数
-    num = data.get_csv()
+    # 获取文件数据，返回训练集与测试集长度
+    num ,num_test= data.get_csv()
     """初始化神经网络"""
     inputnodes = 8  # 一共有八个特征
-    hiddennodes = 10
+    hiddennodes = 30
     outputnodes = 1
-    learningrate = 0.03
+    learningrate = 0.011156
     n = FitANN(inputnodes, hiddennodes, outputnodes, learningrate)
     """训练"""
     # 设置衰减学习率
-    decay = 0.001
     epoch = 10000  # 训练次数
     """动画"""
     plt.ion()
@@ -112,26 +112,40 @@ if __name__ == '__main__':
         for i in range(num):
             n.train(data.get_train_x(i),data.get_train_y(i))
 
-        if j % 100 == 0:  # 每100次查询一次损失函数
+        if j % 1 == 0:  # 每1次查询一次损失函数
             plt.cla()
             if len(n.losses) != 0:
-                loslis.append(float(n.get_sumlosses()))
-                plt.text(0.5, 0, "LOSS=%.4f" % n.get_sumlosses(), fontdict={'size': 20, 'color': 'red'})
-                plt.plot(range(len(loslis)), loslis, 'r')
 
+                sumlosses = float(n.get_sumlosses())
+                plt.text(0, sumlosses, "LOSS=%.4f" % sumlosses, fontdict={'size': 20, 'color': 'red'})
+                plt.text(0, sumlosses+15, "lr=%.4f" % n.get_lr(), fontdict={'size': 15, 'color': 'blue'})
+                plt.text(0, sumlosses + 30, "hidden_nodes=%d" % hiddennodes, fontdict={'size': 15, 'color': 'green'})
+                loslis.append(sumlosses)
+                plt.plot(range(len(loslis)), loslis, 'r')
+                # 当loss维持在某个固定的水平时增大学习率
+                if sumlosses <= 30:
+                    if j % 100 == 0:
+                        n.set_lr(learningrate + 0.001)
+                else:
+                    if j % 100 == 0:
+                        n.set_lr(learningrate - 0.01)
                 # print("第{}次均方误差为{}".format(j, n.get_sumlosses()))
             plt.show()
             plt.pause(0.01)
 
+
+
         # 误差归零
         n.losses = []
     plt.ioff()
-    # """查询"""
-    # num_query = 1000
-    # data_query = DataCreater(num_query)
-    # data_query.normliza_x()
-    # x_query, _ = data_query.get_data()
-    # y_query = [float(n.query(j)) for j in x_query]
+    """查询"""
+    llosses = []
+    for j in range(num_test):
+        y_query = float(n.query(data.get_test_x(j)))
+        y_real = data.get_test_y(j)
+        llosses.append(1/2 * (y_query - y_real) ** 2)
+    print("测试集误差平方和：",sum(llosses))
+
 
     # """画图"""
     # fig = plt.figure(figsize=(4, 4))

@@ -31,7 +31,7 @@ class DataCreater:
         plt.show()
 
     def get_csv(self):
-        data = pd.read_csv("E:/kaggledatabase/concrete.csv")
+        data = pd.read_csv("./concrete.csv")
         df = data.copy()
         # 随机抽取一些数据
         df = df.sample(frac=1.0, random_state=1)  # 全部打乱
@@ -46,7 +46,7 @@ class DataCreater:
                                   'fineagg', 'age']].values
         self.df_test_y = df_test[['strength']].values
 
-        return cut_idx  # 返回训练数据长度
+        return (len(df_train),len(df_test))  # 返回训练数据长度和测试数据长度
 
     # 将数据全部在这里处理完
     def get_test_x(self, i):
